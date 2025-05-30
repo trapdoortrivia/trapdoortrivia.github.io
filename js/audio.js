@@ -110,7 +110,6 @@ class AudioManager {
                 countdown: 880,      // A5
                 correct: 523.25,     // C5
                 fall: 220,           // A3
-                suddenDeath: 110,    // A2
                 victory: 659.25,     // E5
                 houseWins: 146.83,   // D3
                 buttonClick: 330,    // E4
