@@ -12,7 +12,6 @@ const gameState = {
     currentQuestion: 0,
     currentQuestionIndex: null,
     difficulty: 'easy',
-    suddenDeath: false,
     
     // Player state
     currentPosition: -1,
@@ -50,7 +49,6 @@ const gameState = {
         this.currentQuestion = 0;
         this.currentQuestionIndex = null;
         this.difficulty = 'easy';
-        this.suddenDeath = false;
         this.currentPosition = -1;
         this.canMove = false;
         this.isAlive = true;
@@ -83,7 +81,6 @@ const gameState = {
             currentQuestion: this.currentQuestion,
             currentQuestionIndex: this.currentQuestionIndex,
             difficulty: this.difficulty,
-            suddenDeath: this.suddenDeath,
             currentPosition: this.currentPosition,
             isAlive: this.isAlive,
             questions: this.questions,
@@ -130,7 +127,6 @@ const gameState = {
                 this.currentQuestion = state.currentQuestion || 0;
                 this.currentQuestionIndex = state.currentQuestionIndex || null;
                 this.difficulty = state.difficulty || 'easy';
-                this.suddenDeath = state.suddenDeath || false;
                 this.currentPosition = state.currentPosition || -1;
                 this.isAlive = state.isAlive !== undefined ? state.isAlive : true;
                 this.questions = state.questions || {};
@@ -324,7 +320,6 @@ const gameState = {
             playerEmoji: this.playerEmoji,
             currentPosition: this.currentPosition,
             difficulty: this.difficulty,
-            suddenDeath: this.suddenDeath,
             isAlive: this.isAlive,
             canMove: this.canMove,
             playersAlive: this.playersAlive.length,
