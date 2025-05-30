@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Waiting Room - Trapdoor Trivia</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="stage-lights"></div>
+    
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+    
+    <div class="game-container">
+        <div class="waiting-room">
+            <h2 class="game-title">WAITING FOR HOST</h2>
+            
+            <div class="text-center">
+                <p class="waiting-message">Get ready to avoid the trapdoors!</p>
+                
+                <div class="waiting-emoji" id="waitingEmoji">🎭</div>
+                <p class="waiting-name" id="waitingName">Player</p>
+                
+                <div class="game-info">
+                    <p class="info-text">Game Code: <span class="code-highlight" id="gameCodeDisplay"></span></p>
+                    <p class="info-text">Players: <span id="playerCountDisplay">1</span></p>
+                </div>
+                
+                <div class="waiting-tips">
+                    <h3 class="tips-title">How to Play:</h3>
+                    <div class="tips-list">
+                        <div class="tip-item">🎯 Answer questions by standing on the correct trapdoor</div>
+                        <div class="tip-item">⏱️ You have limited time to choose your answer</div>
+                        <div class="tip-item">🚪 Wrong answers = you fall through the trapdoor!</div>
+                        <div class="tip-item">💀 Last player standing wins!</div>
+                    </div>
+                </div>
+                
+                <div class="button-container mt-large">
+                    <button class="btn btn-secondary" id="leaveBtn">LEAVE GAME</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/game-state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <script>
+        let pollInterval = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Check if player is properly set up
+            if (!gameState.gameCode || !gameState.playerName || !gameState.playerEmoji || !gameState.playerId) {
+                showNotification('Session expired. Please rejoin the game.', 'error');
+                setTimeout(() => navigateTo('join.html'), 2000);
+                return;
+            }
+            
+            // Initialize waiting room
+            await initializeWaitingRoom();
+            
+            // Event listeners
+            $('leaveBtn').addEventListener('click', handleLeave);
+            $('soundToggle').addEventListener('click', toggleSound);
+            
+            // Start polling for game start
+            startGamePolling();
+            
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', cleanup);
+        });
+        
+        async function initializeWaitingRoom() {
+            try {
+                // Display player info
+                $('waitingEmoji').textContent = gameState.playerEmoji;
+                $('waitingName').textContent = gameState.playerName;
+                $('gameCodeDisplay').textContent = gameState.gameCode;
+                
+                // Verify game still exists and player is still in it
+                const game = await supabase.getGame(gameState.gameCode);
+                if (!game) {
+                    throw new Error('Game no longer exists');
+                }
+                
+                if (game.status === 'playing') {
+                    // Game already started - go to game stage
+                    navigateTo('game-stage.html');
+                    return;
+                }
+                
+                if (game.status === 'finished') {
+                    showNotification('Game has ended', 'error');
+                    setTimeout(() => navigateTo('index.html'), 2000);
+                    return;
+                }
+                
+                // Check if player still exists in game
+                const players = await supabase.select('players', `game_code=eq.${gameState.gameCode}&id=eq.${gameState.playerId}`);
+                if (players.length === 0) {
+                    throw new Error('You have been removed from the game');
+                }
+                
+                // Update player count
+                await updatePlayerCount();
+                
+            } catch (error) {
+                handleError(error, 'initializing waiting room');
+                showNotification('Unable to join game. Please try again.', 'error');
+                setTimeout(() => navigateTo('join.html'), 3000);
+            }
+        }
+        
+        function startGamePolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    // Update player activity
+                    await supabase.updatePlayerActivity(gameState.playerId);
+                    
+                    // Check game status
+                    const game = await supabase.getGame(gameState.gameCode);
+                    if (!game) {
+                        showNotification('Game no longer exists', 'error');
+                        cleanup();
+                        setTimeout(() => navigateTo('index.html'), 2000);
+                        return;
+                    }
+                    
+                    if (game.status === 'playing') {
+                        // Game started - navigate to game stage
+                        cleanup();
+                        showNotification('Game starting!', 'success', 1500);
+                        setTimeout(() => navigateTo('game-stage.html'), 1000);
+                        return;
+                    }
+                    
+                    if (game.status === 'finished') {
+                        showNotification('Game has ended', 'error');
+                        cleanup();
+                        setTimeout(() => navigateTo('index.html'), 2000);
+                        return;
+                    }
+                    
+                    // Check if player still exists
+                    const players = await supabase.select('players', `game_code=eq.${gameState.gameCode}&id=eq.${gameState.playerId}`);
+                    if (players.length === 0) {
+                        showNotification('You have been removed from the game', 'error');
+                        cleanup();
+                        setTimeout(() => navigateTo('index.html'), 2000);
+                        return;
+                    }
+                    
+                    // Update player count
+                    await updatePlayerCount();
+                    
+                } catch (error) {
+                    console.warn('Polling error:', error);
+                }
+            }, GAME_CONFIG.pollInterval);
+        }
+        
+        async function updatePlayerCount() {
+            try {
+                const players = await supabase.getAlivePlayers(gameState.gameCode);
+                $('playerCountDisplay').textContent = players.length;
+                
+                // Update game state
+                gameState.playersAlive = players;
+                
+            } catch (error) {
+                console.warn('Failed to update player count:', error);
+            }
+        }
+        
+        async function handleLeave() {
+            if (confirm('Are you sure you want to leave the game?')) {
+                playSound('buttonClick');
+                await leaveGame();
+                navigateTo('index.html');
+            }
+        }
+        
+        async function leaveGame() {
+            try {
+                if (gameState.playerId) {
+                    await supabase.delete('players', `id=eq.${gameState.playerId}`);
+                }
+            } catch (error) {
+                console.warn('Error leaving game:', error);
+            }
+        }
+        
+        function cleanup() {
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+        }
+        
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                // Page is hidden - pause polling to save resources
+                if (pollInterval) {
+                    clearInterval(pollInterval);
+                    pollInterval = null;
+                }
+            } else {
+                // Page is visible again - resume polling
+                if (!pollInterval) {
+                    startGamePolling();
+                }
+            }
+        });
+    </script>
+    
+    <style>
+        /* Additional styles specific to waiting room */
+        .waiting-room {
+            text-align: center;
+            animation: fadeIn 1s ease-in-out;
+            max-width: 600px;
+            width: 100%;
+        }
+        
+        .waiting-emoji {
+            font-size: 120px;
+            margin: 50px 0;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        .waiting-name {
+            font-size: 2rem;
+            color: var(--color-primary);
+            margin-bottom: 2rem;
+            font-weight: bold;
+        }
+        
+        .waiting-message {
+            font-size: 1.5rem;
+            color: var(--color-menu-light);
+            margin: 2rem 0;
+        }
+        
+        .game-info {
+            background: rgba(52, 52, 52, 0.5);
+            padding: 1.5rem;
+            border-radius: var(--border-radius-large);
+            margin: 2rem 0;
+            border: 2px solid var(--color-menu-dark);
+        }
+        
+        .info-text {
+            font-size: 1.25rem;
+            margin: 0.5rem 0;
+            color: var(--color-white);
+        }
+        
+        .code-highlight {
+            font-weight: bold;
+            color: var(--color-primary);
+            font-family: monospace;
+            font-size: 1.5rem;
+            letter-spacing: 0.2rem;
+        }
+        
+        .waiting-tips {
+            background: rgba(52, 52, 52, 0.3);
+            padding: 2rem;
+            border-radius: var(--border-radius-large);
+            margin: 2rem 0;
+            text-align: left;
+        }
+        
+        .tips-title {
+            font-size: 1.5rem;
+            color: var(--color-secondary);
+            margin-bottom: 1rem;
+            text-align: center;
+        }
+        
+        .tips-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .tip-item {
+            font-size: 1.125rem;
+            color: var(--color-white);
+            padding: 0.5rem;
+            background: rgba(52, 52, 52, 0.3);
+            border-radius: var(--border-radius);
+            border-left: 4px solid var(--color-primary);
+        }
+        
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .waiting-emoji {
+                font-size: 80px;
+                margin: 30px 0;
+            }
+            
+            .waiting-name {
+                font-size: 1.5rem;
+            }
+            
+            .waiting-message {
+                font-size: 1.25rem;
+            }
+            
+            .game-info {
+                padding: 1rem;
+            }
+            
+            .info-text {
+                font-size: 1.125rem;
+            }
+            
+            .code-highlight {
+                font-size: 1.25rem;
+            }
+            
+            .waiting-tips {
+                padding: 1.5rem;
+            }
+            
+            .tips-title {
+                font-size: 1.25rem;
+            }
+            
+            .tip-item {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</body>
+</html>

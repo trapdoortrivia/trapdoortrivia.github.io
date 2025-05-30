@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Join Game - Trapdoor Trivia</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="stage-lights"></div>
+    
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+    
+    <div class="game-container">
+        <div class="join-screen">
+            <div class="scrollable-container">
+                <h2 class="game-title">JOIN GAME</h2>
+                
+                <form id="joinForm" autocomplete="off" novalidate>
+                    <div class="text-center">
+                        <h3 class="section-title">Enter Game Code:</h3>
+                        
+                        <div class="code-input-container">
+                            <input type="text" 
+                                   class="code-input" 
+                                   id="joinCode1" 
+                                   maxlength="1" 
+                                   autocomplete="new-password" 
+                                   autocorrect="off" 
+                                   autocapitalize="characters" 
+                                   spellcheck="false" 
+                                   inputmode="text"
+                                   data-index="0">
+                            <input type="text" 
+                                   class="code-input" 
+                                   id="joinCode2" 
+                                   maxlength="1" 
+                                   autocomplete="new-password" 
+                                   autocorrect="off" 
+                                   autocapitalize="characters" 
+                                   spellcheck="false" 
+                                   inputmode="text"
+                                   data-index="1">
+                            <input type="text" 
+                                   class="code-input" 
+                                   id="joinCode3" 
+                                   maxlength="1" 
+                                   autocomplete="new-password" 
+                                   autocorrect="off" 
+                                   autocapitalize="characters" 
+                                   spellcheck="false" 
+                                   inputmode="text"
+                                   data-index="2">
+                            <input type="text" 
+                                   class="code-input" 
+                                   id="joinCode4" 
+                                   maxlength="1" 
+                                   autocomplete="new-password" 
+                                   autocorrect="off" 
+                                   autocapitalize="characters" 
+                                   spellcheck="false" 
+                                   inputmode="text"
+                                   data-index="3">
+                        </div>
+                        
+                        <div class="error-message" id="errorMessage" style="display: none;">
+                            Invalid game code. Please try again.
+                        </div>
+                        
+                        <div class="button-container mt-large">
+                            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+                                CONTINUE
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="backBtn">
+                                BACK
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/game-state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <script>
+        let codeInputs = [];
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            // Initialize code inputs
+            codeInputs = [
+                document.getElementById('joinCode1'),
+                document.getElementById('joinCode2'),
+                document.getElementById('joinCode3'),
+                document.getElementById('joinCode4')
+            ];
+            
+            // Set up input event listeners
+            codeInputs.forEach((input, index) => {
+                input.addEventListener('input', handleInput);
+                input.addEventListener('keydown', handleKeydown);
+                input.addEventListener('paste', handlePaste);
+                input.addEventListener('focus', handleFocus);
+            });
+            
+            // Form submission
+            document.getElementById('joinForm').addEventListener('submit', handleSubmit);
+            
+            // Back button
+            document.getElementById('backBtn').addEventListener('click', () => {
+                playSound('buttonClick');
+                window.location.href = 'index.html';
+            });
+            
+            // Sound toggle
+            document.getElementById('soundToggle').addEventListener('click', toggleSound);
+            
+            // Focus first input
+            setTimeout(() => codeInputs[0].focus(), 100);
+        });
+        
+        function handleInput(e) {
+            const input = e.target;
+            const index = parseInt(input.dataset.index);
+            let value = input.value.toUpperCase();
+            
+            // Only allow letters A-Z
+            value = value.replace(/[^A-Z]/g, '');
+            
+            // Take only the first character
+            if (value.length > 1) {
+                value = value.charAt(0);
+            }
+            
+            input.value = value;
+            
+            console.log(`Input ${index}: '${value}' (length: ${value.length})`); // Debug
+            
+            if (value.length === 1) {
+                // Move to next input
+                if (index < 3) {
+                    codeInputs[index + 1].focus();
+                }
+            }
+            
+            checkCodeComplete();
+        }
+        
+        function handleKeydown(e) {
+            const input = e.target;
+            const index = parseInt(input.dataset.index);
+            
+            // Handle backspace
+            if (e.key === 'Backspace' && input.value === '' && index > 0) {
+                codeInputs[index - 1].focus();
+            }
+            
+            // Handle arrow keys
+            if (e.key === 'ArrowLeft' && index > 0) {
+                codeInputs[index - 1].focus();
+            } else if (e.key === 'ArrowRight' && index < 3) {
+                codeInputs[index + 1].focus();
+            }
+        }
+        
+        function handlePaste(e) {
+            e.preventDefault();
+            const paste = (e.clipboardData || window.clipboardData).getData('text').toUpperCase();
+            const chars = paste.split('').filter(c => /[A-Z]/.test(c)).slice(0, 4);
+            
+            chars.forEach((char, i) => {
+                if (codeInputs[i]) {
+                    codeInputs[i].value = char;
+                }
+            });
+            
+            if (chars.length === 4) {
+                codeInputs[3].focus();
+            } else if (chars.length > 0) {
+                codeInputs[Math.min(chars.length, 3)].focus();
+            }
+            
+            checkCodeComplete();
+        }
+        
+        function handleFocus(e) {
+            e.target.select();
+        }
+        
+        function checkCodeComplete() {
+            const code = codeInputs.map(input => input.value).join('');
+            const submitBtn = document.getElementById('submitBtn');
+            
+            if (code.length === 4) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'CONTINUE';
+            } else {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'CONTINUE';
+            }
+        }
+        
+        async function handleSubmit(e) {
+            e.preventDefault();
+            
+            let code = '';
+            // Manually concatenate to be absolutely sure
+            for (let i = 0; i < 4; i++) {
+                code += codeInputs[i].value.trim().toUpperCase();
+            }
+            
+            console.log('Raw code from inputs:', code); // Debug
+            console.log('Code length:', code.length); // Debug
+            console.log('Code chars:', code.split('').map(c => `'${c}' (${c.charCodeAt(0)})`)); // Debug
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const errorMsg = document.getElementById('errorMessage');
+            
+            if (code.length !== 4) {
+                showError('Please enter a complete 4-letter code');
+                return;
+            }
+            
+            // Validate code format
+            if (!/^[A-Z]{4}$/.test(code)) {
+                showError('Code must be 4 letters only');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'CHECKING...';
+            errorMsg.style.display = 'none';
+            
+            try {
+                console.log('Searching for game with code:', code); // Debug
+                
+                // Verify game code exists and is waiting
+                const games = await supabase.select('games', `code=eq.${code}&status=eq.waiting`);
+                
+                console.log('Database query result:', games); // Debug
+                console.log('Games found:', games.length); // Debug
+                
+                if (games && games.length > 0) {
+                    console.log('Game found! Details:', games[0]); // Debug
+                    
+                    // Valid code - store in game state and navigate DIRECTLY to player setup
+                    gameState.setGameCode(code);
+                    gameState.saveToStorage();
+                    
+                    playSound('buttonClick');
+                    showNotification('Game found! Setting up your player...', 'success', 1500);
+                    
+                    // Go straight to player setup
+                    setTimeout(() => {
+                        window.location.href = 'player-setup.html';
+                    }, 1000);
+                } else {
+                    console.log('No games found with code:', code); // Debug
+                    
+                    // Let's also check what games DO exist
+                    const allGames = await supabase.select('games');
+                    console.log('All games in database:', allGames); // Debug
+                    
+                    showError('Game not found or already started. Please check your code.');
+                }
+            } catch (error) {
+                console.error('Error verifying game code:', error);
+                showError('Connection error. Please try again.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'CONTINUE';
+            }
+        }
+        
+        function showError(message) {
+            const errorMsg = document.getElementById('errorMessage');
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+            
+            // Flash inputs red
+            codeInputs.forEach(input => {
+                input.style.borderColor = 'var(--color-danger)';
+                setTimeout(() => {
+                    input.style.borderColor = '';
+                }, 1000);
+            });
+            
+            // Clear inputs and refocus
+            setTimeout(() => {
+                codeInputs.forEach(input => input.value = '');
+                codeInputs[0].focus();
+                checkCodeComplete();
+            }, 1500);
+        }
+    </script>
+</body>
+</html>
