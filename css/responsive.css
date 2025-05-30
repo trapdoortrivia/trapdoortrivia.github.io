@@ -1,0 +1,556 @@
+/* Mobile & Tablet Responsive Styles */
+
+/* Large tablets and small desktops */
+@media (max-width: 1024px) {
+    .game-title {
+        font-size: 3.5rem;
+    }
+    
+    .game-logo {
+        width: 350px;
+    }
+    
+    .btn {
+        padding: 1rem 2.5rem;
+        font-size: 1.25rem;
+        min-width: 180px;
+    }
+    
+    .code-input {
+        width: 70px;
+        height: 70px;
+        font-size: 2.5rem;
+    }
+    
+    .code-display {
+        width: 70px;
+        height: 70px;
+        font-size: 2.5rem;
+    }
+    
+    .trapdoor-container {
+        gap: 1.5rem;
+    }
+    
+    .trapdoor {
+        width: 240px;
+        height: 350px;
+    }
+}
+
+/* Tablets */
+@media (max-width: 768px) {
+    html {
+        font-size: 14px;
+    }
+    
+    .game-container {
+        padding: 15px;
+    }
+    
+    .game-title {
+        font-size: 3rem;
+        letter-spacing: 0.2rem;
+    }
+    
+    .subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+    }
+    
+    .game-logo {
+        width: 300px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn {
+        padding: 1rem 2rem;
+        font-size: 1.125rem;
+        min-width: 160px;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+    
+    .code-input-container {
+        gap: 0.75rem;
+    }
+    
+    .code-input {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+    
+    .code-display {
+        width: 60px;
+        height: 60px;
+        font-size: 2rem;
+    }
+    
+    .name-input {
+        font-size: 1.25rem;
+        padding: 1rem;
+    }
+    
+    .emoji-grid {
+        grid-template-columns: repeat(8, 1fr);
+        gap: 0.75rem;
+        padding: 1.5rem;
+        max-width: 600px;
+        min-height: 350px;
+    }
+    
+    .emoji-option {
+        font-size: 1.8rem;
+        padding: 0.75rem;
+    }
+    
+    .scrollable-container {
+        padding: 15px;
+    }
+    
+    .modal-content {
+        padding: 2rem;
+        width: 95%;
+    }
+    
+    .sound-toggle {
+        width: 45px;
+        height: 45px;
+        font-size: 1.25rem;
+        top: 15px;
+        right: 15px;
+    }
+    
+    /* KEEP TRAPDOORS SIDE BY SIDE ON MOBILE */
+    .trapdoor-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: 1rem;
+        margin: 2rem 0;
+        flex-wrap: nowrap;
+    }
+    
+    .trapdoor {
+        width: 200px;
+        height: 450px;
+        flex: 1;
+        max-width: 220px;
+    }
+    
+    .trapdoor-platform {
+        padding: 1.5rem 1rem;
+    }
+    
+    .trapdoor-label {
+        font-size: 2.5rem;
+    }
+    
+    .players-on-trapdoor {
+        min-height: 200px;
+        padding: 1rem 0.5rem;
+    }
+    
+    .question-text {
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .timer {
+        font-size: 2.5rem;
+    }
+    
+    .timer-bar {
+        width: 200px;
+    }
+    
+    .game-info-bar {
+        flex-direction: row;
+        gap: 1rem;
+        text-align: center;
+        justify-content: space-around;
+        flex-wrap: wrap;
+    }
+    
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 100px;
+    }
+    
+    .info-label, .info-value {
+        display: block;
+    }
+    
+    .player-emoji {
+        font-size: 2.5rem;
+    }
+    
+    .player-emoji.my-player-emoji {
+        font-size: 3rem;
+    }
+    
+    .player-emoji.other-player-emoji {
+        font-size: 2.3rem;
+    }
+}
+
+/* Mobile phones */
+@media (max-width: 480px) {
+    html {
+        font-size: 12px;
+    }
+    
+    .game-container {
+        padding: 10px;
+        justify-content: flex-start;
+        padding-top: 60px;
+    }
+    
+    .game-title {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .subtitle {
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .game-logo {
+        width: 250px;
+        margin-bottom: 1rem;
+    }
+    
+    .btn {
+        padding: 0.875rem 1.5rem;
+        font-size: 1rem;
+        min-width: 140px;
+        width: 100%;
+        max-width: 280px;
+    }
+    
+    .button-container {
+        width: 100%;
+        max-width: 300px;
+    }
+    
+    .section-title {
+        font-size: 1.75rem;
+        margin-bottom: 1rem;
+    }
+    
+    .code-input-container {
+        gap: 0.5rem;
+        margin: 1.5rem 0;
+    }
+    
+    .code-input {
+        width: 50px;
+        height: 50px;
+        font-size: 1.75rem;
+        border-width: 2px;
+    }
+    
+    .code-display {
+        width: 50px;
+        height: 50px;
+        font-size: 1.75rem;
+        border-width: 2px;
+    }
+    
+    .name-input {
+        font-size: 1.125rem;
+        padding: 0.875rem;
+        max-width: 100%;
+    }
+    
+    .emoji-grid {
+        grid-template-columns: repeat(6, 1fr);
+        gap: 0.5rem;
+        padding: 1rem;
+        margin: 1.5rem auto;
+        max-width: 400px;
+        min-height: 300px;
+    }
+    
+    .emoji-option {
+        font-size: 1.5rem;
+        padding: 0.5rem;
+    }
+    
+    .scrollable-container {
+        padding: 10px;
+    }
+    
+    .modal-content {
+        padding: 1.5rem;
+        margin: 10px;
+    }
+    
+    .modal-title {
+        font-size: 1.25rem;
+    }
+    
+    .modal-text {
+        font-size: 1rem;
+    }
+    
+    .modal-buttons {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    .modal-btn {
+        padding: 0.75rem 1.5rem;
+        width: 100%;
+    }
+    
+    .sound-toggle {
+        width: 40px;
+        height: 40px;
+        font-size: 1.125rem;
+        top: 10px;
+        right: 10px;
+    }
+    
+    .players-list {
+        padding: 1.5rem;
+        margin: 1.5rem auto;
+    }
+    
+    .players-title {
+        font-size: 1.5rem;
+    }
+    
+    .player-item {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+    
+    .player-emoji-small {
+        font-size: 1.5rem;
+    }
+    
+    .player-name {
+        font-size: 1.125rem;
+    }
+    
+    .kick-btn {
+        width: 25px;
+        height: 25px;
+        font-size: 1rem;
+        right: 8px;
+    }
+    
+    .error-message {
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+    
+    .success-message {
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+    
+    /* MOBILE TRAPDOORS - SIDE BY SIDE, TALLER */
+    .trapdoor-container {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        gap: 0.75rem;
+        margin: 1.5rem 0;
+        flex-wrap: nowrap;
+    }
+    
+    .trapdoor {
+        width: 160px;
+        height: 400px;
+        flex: 1;
+        max-width: 180px;
+    }
+    
+    .trapdoor-platform {
+        padding: 1rem 0.5rem;
+    }
+    
+    .trapdoor-label {
+        font-size: 2rem;
+    }
+    
+    .players-on-trapdoor {
+        min-height: 180px;
+        padding: 0.75rem 0.25rem;
+    }
+    
+    .question-text {
+        font-size: 1.5rem;
+    }
+    
+    .timer {
+        font-size: 2rem;
+    }
+    
+    .timer-bar {
+        width: 150px;
+        height: 6px;
+    }
+    
+    .difficulty-badge {
+        padding: 0.5rem 1.5rem;
+        font-size: 1rem;
+    }
+    
+    .player-emoji {
+        font-size: 2rem;
+    }
+    
+    .player-emoji.my-player-emoji {
+        font-size: 2.5rem;
+    }
+    
+    .player-emoji.other-player-emoji {
+        font-size: 1.8rem;
+    }
+    
+    .game-info-bar {
+        flex-direction: row;
+        gap: 0.5rem;
+        justify-content: space-around;
+    }
+    
+    .info-item {
+        font-size: 0.9rem;
+        min-width: 80px;
+    }
+}
+
+/* Portrait orientation message for mobile */
+@media screen and (max-width: 768px) and (orientation: portrait) {
+    .orientation-message {
+        display: flex !important;
+    }
+    
+    .game-container {
+        display: none !important;
+    }
+    
+    .orientation-text {
+        font-size: 1.25rem;
+    }
+    
+    .orientation-subtext {
+        font-size: 1rem;
+    }
+    
+    .rotate-phone {
+        font-size: 5rem;
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Landscape phones - special case */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+    .game-container {
+        padding-top: 20px;
+        justify-content: flex-start;
+    }
+    
+    .game-title {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .subtitle {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .game-logo {
+        width: 200px;
+        margin-bottom: 0.5rem;
+    }
+    
+    .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        min-width: 120px;
+    }
+    
+    .button-container {
+        gap: 0.5rem;
+    }
+    
+    .scrollable-container {
+        padding: 15px;
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .code-input-container {
+        margin: 1rem 0;
+    }
+    
+    .emoji-grid {
+        padding: 0.75rem;
+        margin: 1rem auto;
+    }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .game-logo {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+    
+    .rotate-phone {
+        animation: none;
+    }
+    
+    .stage-lights {
+        animation: none;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    .btn {
+        border: 2px solid currentColor;
+    }
+    
+    .code-input, .name-input {
+        border-width: 3px;
+    }
+    
+    .emoji-option {
+        border: 2px solid var(--color-primary);
+    }
+}
+
+/* Focus improvements for keyboard navigation */
+@media (pointer: none), (pointer: coarse) {
+    .btn:focus,
+    .code-input:focus,
+    .name-input:focus,
+    .emoji-option:focus {
+        outline: 3px solid var(--color-secondary);
+        outline-offset: 2px;
+    }
+}
