@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Host Game - Trapdoor Trivia</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="stage-lights"></div>
+    
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+    
+    <!-- Kick Player Modal -->
+    <div class="modal" id="kickModal">
+        <div class="modal-content">
+            <div class="modal-title">Kick Player?</div>
+            <div class="modal-text">Are you sure you want to remove <span id="kickPlayerName"></span> from the game?</div>
+            <div class="modal-buttons">
+                <button class="modal-btn confirm" id="confirmKickBtn">Yes, Kick</button>
+                <button class="modal-btn cancel" id="cancelKickBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="game-container">
+        <div class="host-screen">
+            <div class="scrollable-container">
+                <h2 class="game-title">HOST GAME</h2>
+                
+                <div class="text-center">
+                    <h3 class="section-title">Game Code:</h3>
+                    
+                    <div class="code-input-container">
+                        <div class="code-display" id="code1"></div>
+                        <div class="code-display" id="code2"></div>
+                        <div class="code-display" id="code3"></div>
+                        <div class="code-display" id="code4"></div>
+                    </div>
+                    
+                    <button class="btn btn-small btn-secondary" id="copyCodeBtn">
+                        📋 COPY CODE
+                    </button>
+                    
+                    <div class="players-list" id="playersWaiting">
+                        <h3 class="players-title">Players Ready: <span id="playerCount">0</span></h3>
+                        <div id="playersList">
+                            <div class="player-item" style="opacity: 0.5; font-style: italic;">
+                                Waiting for players to join...
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="button-container mt-large">
+                        <button class="btn btn-primary" id="startBtn" disabled>
+                            START GAME
+                        </button>
+                        <button class="btn btn-secondary" id="backBtn">
+                            BACK TO HOME
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/game-state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <script>
+        let pollInterval = null;
+        let playerToKick = null;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize host game
+            await createGame();
+            
+            // Event listeners
+            $('startBtn').addEventListener('click', handleStartGame);
+            $('backBtn').addEventListener('click', handleBack);
+            $('copyCodeBtn').addEventListener('click', handleCopyCode);
+            $('soundToggle').addEventListener('click', toggleSound);
+            
+            // Modal event listeners
+            $('confirmKickBtn').addEventListener('click', confirmKick);
+            $('cancelKickBtn').addEventListener('click', cancelKick);
+            
+            // Start polling for players
+            startPlayerPolling();
+            
+            // Cleanup on page unload
+            window.addEventListener('beforeunload', cleanup);
+        });
+        
+        // ORIGINAL WORKING createGame function
+        async function createGame() {
+            try {
+                // Set role
+                gameState.setRole('host');
+                
+                // Generate unique game code
+                const codeResult = await supabase.rpc('generate_unique_code');
+                
+                if (!codeResult) {
+                    throw new Error('Failed to generate game code');
+                }
+                
+                gameState.setGameCode(codeResult);
+                
+                // Load questions from database
+                const questions = await supabase.getAllQuestionsGrouped();
+                gameState.setQuestions(questions);
+                
+                // Display code
+                displayGameCode(gameState.gameCode);
+                
+                // Create game in database
+                const gameData = {
+                    code: gameState.gameCode,
+                    status: 'waiting',
+                    difficulty: 'easy',
+                    current_question: 0,
+                    sudden_death: false,
+                    last_activity: new Date().toISOString(),
+                    created_at: new Date().toISOString()
+                };
+                
+                const result = await supabase.insert('games', gameData);
+                if (result && result[0]) {
+                    gameState.gameId = result[0].id;
+                    showNotification('Game created successfully!', 'success', 2000);
+                } else {
+                    throw new Error('Failed to create game in database');
+                }
+                
+            } catch (error) {
+                handleError(error, 'creating game');
+                showNotification('Failed to create game. Please try again.', 'error');
+                setTimeout(() => navigateTo('index.html'), 3000);
+            }
+        }
+        
+        function displayGameCode(code) {
+            const letters = code.split('');
+            $('code1').textContent = letters[0];
+            $('code2').textContent = letters[1];
+            $('code3').textContent = letters[2];
+            $('code4').textContent = letters[3];
+        }
+        
+        function startPlayerPolling() {
+            pollInterval = setInterval(async () => {
+                try {
+                    // Update game activity
+                    await supabase.updateGameActivity(gameState.gameCode);
+                    
+                    // Get current players
+                    const players = await supabase.select('players', `game_code=eq.${gameState.gameCode}`);
+                    updatePlayersList(players);
+                    
+                } catch (error) {
+                    console.warn('Polling error:', error);
+                }
+            }, GAME_CONFIG.hostPollInterval);
+        }
+        
+        function updatePlayersList(players) {
+            const alivePlayers = players.filter(p => p.alive);
+            const playersList = $('playersList');
+            const playerCount = $('playerCount');
+            const startBtn = $('startBtn');
+            
+            // Update count
+            playerCount.textContent = alivePlayers.length;
+            
+            // Update list
+            if (alivePlayers.length === 0) {
+                playersList.innerHTML = `
+                    <div class="player-item" style="opacity: 0.5; font-style: italic;">
+                        Waiting for players to join...
+                    </div>
+                `;
+            } else {
+                playersList.innerHTML = alivePlayers.map(player => `
+                    <div class="player-item" data-player-id="${player.id}">
+                        <span class="player-emoji-small">${player.emoji}</span>
+                        <span class="player-name">${escapeHtml(player.name)}</span>
+                        <button class="kick-btn" onclick="showKickModal('${player.id}', '${escapeHtml(player.name)}')" 
+                                title="Kick player">×</button>
+                    </div>
+                `).join('');
+            }
+            
+            // Enable/disable start button
+            startBtn.disabled = alivePlayers.length < GAME_CONFIG.minPlayers;
+            
+            // Update game state
+            gameState.playersAlive = alivePlayers;
+        }
+        
+        function showKickModal(playerId, playerName) {
+            playerToKick = playerId;
+            $('kickPlayerName').textContent = playerName;
+            showModal('kickModal');
+        }
+        
+        async function confirmKick() {
+            if (!playerToKick) return;
+            
+            try {
+                await supabase.delete('players', `id=eq.${playerToKick}`);
+                showNotification('Player removed from game', 'success', 2000);
+                playSound('buttonClick');
+            } catch (error) {
+                handleError(error, 'kicking player');
+                showNotification('Failed to remove player', 'error', 2000);
+            }
+            
+            cancelKick();
+        }
+        
+        function cancelKick() {
+            playerToKick = null;
+            hideModal('kickModal');
+        }
+        
+        // FIXED handleStartGame - keeps the host role saving but removes cleanup()
+        async function handleStartGame() {
+            const startBtn = $('startBtn');
+            
+            if (gameState.playersAlive.length < GAME_CONFIG.minPlayers) {
+                showNotification(`Need at least ${GAME_CONFIG.minPlayers} players to start`, 'error');
+                return;
+            }
+            
+            setLoadingState('startBtn', true);
+            
+            try {
+                // SAVE HOST ROLE EXPLICITLY
+                gameState.setRole('host');
+                localStorage.setItem('trapdoorTriviaRole', 'host');
+                localStorage.setItem('trapdoorTriviaIsHost', 'true');
+                sessionStorage.setItem('trapdoorTriviaRole', 'host');
+                sessionStorage.setItem('trapdoorTriviaIsHost', 'true');
+                
+                // Update game status to playing
+                const updateResult = await supabase.update('games', gameState.gameId, {
+                    status: 'playing',
+                    current_question: 0,
+                    last_activity: new Date().toISOString()
+                });
+                
+                playSound('buttonClick');
+                showNotification('Starting game...', 'success', 1000);
+                
+                // Save state and navigate (NO CLEANUP!)
+                gameState.saveToStorage();
+                
+                setTimeout(() => {
+                    window.location.href = 'game-stage.html';
+                }, 500);
+                
+            } catch (error) {
+                console.error('Error starting game:', error);
+                showNotification('Failed to start game: ' + error.message, 'error');
+                setLoadingState('startBtn', false);
+            }
+        }
+        
+        function handleBack() {
+            playSound('buttonClick');
+            
+            // Show confirmation if there are players
+            if (gameState.playersAlive.length > 0) {
+                if (confirm('Are you sure you want to leave? This will end the game for all players.')) {
+                    cleanup();
+                    backToHome();
+                }
+            } else {
+                cleanup();
+                backToHome();
+            }
+        }
+        
+        async function handleCopyCode() {
+            const success = await copyToClipboard(gameState.gameCode);
+            if (success) {
+                playSound('buttonClick');
+            }
+        }
+        
+        async function cleanup() {
+            // Stop polling
+            if (pollInterval) {
+                clearInterval(pollInterval);
+                pollInterval = null;
+            }
+            
+            // Clean up game if no players or host is leaving
+            if (gameState.gameId) {
+                try {
+                    // Delete all players first
+                    await supabase.delete('players', `game_code=eq.${gameState.gameCode}`);
+                    // Delete the game
+                    await supabase.delete('games', `code=eq.${gameState.gameCode}`);
+                } catch (error) {
+                    console.warn('Cleanup error:', error);
+                }
+            }
+        }
+        
+        // Utility function to escape HTML
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        
+        // Make showKickModal globally accessible
+        window.showKickModal = showKickModal;
+    </script>
+</body>
+</html>

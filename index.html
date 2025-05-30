@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Trapdoor Trivia</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="stage-lights" id="stageLights"></div>
+    
+    <!-- Orientation Message -->
+    <div class="orientation-message" id="orientationMessage">
+        <div class="rotate-phone">📱</div>
+        <div class="orientation-text">Turn your phone sideways!</div>
+        <div class="orientation-subtext">Trapdoor Trivia is best played in landscape mode</div>
+    </div>
+
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+    
+    <div class="game-container">
+        <div class="title-screen">
+            <!-- Logo will be loaded from external source -->
+            <img src="" alt="Trapdoor Trivia Logo" class="game-logo" id="gameLogo">
+            <!-- Fallback title if logo doesn't load -->
+            
+            <div class="button-container">
+                <button class="btn btn-primary" id="hostBtn">HOST GAME</button>
+                <button class="btn btn-secondary" id="joinBtn">JOIN GAME</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/game-state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <script>
+        // Initialize home page
+        document.addEventListener('DOMContentLoaded', () => {
+            // Load logo from external source
+            const logo = document.getElementById('gameLogo');
+            logo.src = ASSET_URLS.logo;
+            logo.onerror = () => {
+                // Hide logo if it fails to load
+                logo.style.display = 'none';
+            };
+            
+            // Sound toggle
+            document.getElementById('soundToggle').addEventListener('click', toggleSound);
+            
+            // Navigation buttons
+            document.getElementById('hostBtn').addEventListener('click', () => {
+                playSound('buttonClick');
+                window.location.href = 'host.html';
+            });
+            
+            document.getElementById('joinBtn').addEventListener('click', () => {
+                playSound('buttonClick');
+                window.location.href = 'join.html';
+            });
+            
+            // Handle orientation
+            handleOrientation();
+            window.addEventListener('orientationchange', handleOrientation);
+            window.addEventListener('resize', handleOrientation);
+        });
+        
+        function handleOrientation() {
+            const orientationMsg = document.getElementById('orientationMessage');
+            
+            // Check if mobile and portrait
+            if (window.innerWidth <= 768 && window.innerHeight > window.innerWidth) {
+                orientationMsg.style.display = 'flex';
+            } else {
+                orientationMsg.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

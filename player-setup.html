@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Choose Avatar - Trapdoor Trivia</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="stage-lights"></div>
+    
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+    
+    <div class="game-container">
+        <div class="player-setup">
+            <div class="scrollable-container">
+                <h2 class="game-title">CHOOSE YOUR AVATAR</h2>
+                
+                <form id="playerSetupForm" autocomplete="off" novalidate>
+                    <input type="text" 
+                           class="name-input" 
+                           id="playerName" 
+                           placeholder="Enter your name" 
+                           autocomplete="new-password" 
+                           autocorrect="off" 
+                           autocapitalize="off" 
+                           spellcheck="false"
+                           data-lpignore="true"
+                           data-form-type="other"
+                           maxlength="50"
+                           required>
+                    
+                    <h3 class="section-title mt-large">Pick your emoji:</h3>
+                    
+                    <div class="emoji-grid" id="emojiGrid">
+                        <!-- Emojis will be populated here -->
+                    </div>
+                    
+                    <div class="error-message" id="errorMessage" style="display: none;">
+                        Please enter your name and select an emoji.
+                    </div>
+                    
+                    <div class="button-container mt-large">
+                        <button type="submit" class="btn btn-primary" id="joinBtn" disabled>
+                            JOIN GAME
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="backBtn">
+                            BACK
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/game-state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <script>
+        let selectedEmoji = null;
+        let takenEmojis = [];
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load game state first
+            gameState.loadFromStorage();
+            
+            // Check if we have a valid game code
+            if (!gameState.gameCode) {
+                showNotification('No game code found. Please join a game first.', 'error');
+                setTimeout(() => navigateTo('join.html'), 2000);
+                return;
+            }
+            
+            console.log('Game code found:', gameState.gameCode); // Debug log
+            
+            // Initialize form
+            await initializePlayerSetup();
+            
+            // Event listeners
+            $('playerName').addEventListener('input', checkFormReady);
+            $('playerSetupForm').addEventListener('submit', handleSubmit);
+            $('backBtn').addEventListener('click', handleBack);
+            $('soundToggle').addEventListener('click', toggleSound);
+            
+            // Focus name input
+            setTimeout(() => $('playerName').focus(), 100);
+        });
+        
+        async function initializePlayerSetup() {
+            try {
+                // Verify game still exists and is waiting
+                const game = await supabase.getGame(gameState.gameCode);
+                if (!game || game.status !== 'waiting') {
+                    showNotification('Game no longer available or already started.', 'error');
+                    setTimeout(() => navigateTo('join.html'), 2000);
+                    return;
+                }
+                
+                // Load taken emojis
+                await loadTakenEmojis();
+                
+                // Populate emoji grid
+                populateEmojiGrid();
+                
+            } catch (error) {
+                handleError(error, 'initializing player setup');
+                setTimeout(() => navigateTo('join.html'), 2000);
+            }
+        }
+        
+        async function loadTakenEmojis() {
+            try {
+                const players = await supabase.select('players', `game_code=eq.${gameState.gameCode}`);
+                takenEmojis = players.map(p => p.emoji);
+            } catch (error) {
+                console.warn('Failed to load taken emojis:', error);
+                takenEmojis = [];
+            }
+        }
+        
+        function populateEmojiGrid() {
+            const grid = $('emojiGrid');
+            grid.innerHTML = '';
+            
+            GAME_CONFIG.availableEmojis.forEach(emoji => {
+                const option = document.createElement('div');
+                option.className = 'emoji-option';
+                option.textContent = emoji;
+                option.dataset.emoji = emoji;
+                option.setAttribute('tabindex', '0');
+                option.setAttribute('role', 'button');
+                option.setAttribute('aria-label', `Select ${emoji} emoji`);
+                
+                if (takenEmojis.includes(emoji)) {
+                    option.classList.add('taken');
+                    option.setAttribute('aria-disabled', 'true');
+                } else {
+                    option.addEventListener('click', () => selectEmoji(emoji));
+                    option.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            preventDefault(e);
+                            selectEmoji(emoji);
+                        }
+                    });
+                }
+                
+                grid.appendChild(option);
+            });
+        }
+        
+        function selectEmoji(emoji) {
+            if (takenEmojis.includes(emoji)) {
+                showNotification('This emoji is already taken!', 'error', 2000);
+                return;
+            }
+            
+            playSound('buttonClick');
+            
+            // Clear previous selection
+            $$('.emoji-option').forEach(option => {
+                option.classList.remove('selected');
+                option.setAttribute('aria-selected', 'false');
+            });
+            
+            // Select new emoji
+            const option = document.querySelector(`[data-emoji="${emoji}"]`);
+            option.classList.add('selected');
+            option.setAttribute('aria-selected', 'true');
+            
+            selectedEmoji = emoji;
+            gameState.playerEmoji = emoji;
+            
+            checkFormReady();
+        }
+        
+        function checkFormReady() {
+            const name = $('playerName').value.trim();
+            const joinBtn = $('joinBtn');
+            const errorMsg = $('errorMessage');
+            
+            const nameValid = validatePlayerName(name);
+            const emojiValid = selectedEmoji !== null;
+            const formReady = nameValid && emojiValid;
+            
+            joinBtn.disabled = !formReady;
+            
+            if (formReady) {
+                errorMsg.style.display = 'none';
+                gameState.playerName = name;
+            }
+        }
+        
+        async function handleSubmit(e) {
+            preventDefault(e);
+            
+            const name = $('playerName').value.trim();
+            const joinBtn = $('joinBtn');
+            const errorMsg = $('errorMessage');
+            
+            // Validate form
+            if (!validatePlayerName(name)) {
+                showError('Please enter a valid name (1-50 characters)');
+                return;
+            }
+            
+            if (!selectedEmoji) {
+                showError('Please select an emoji');
+                return;
+            }
+            
+            if (takenEmojis.includes(selectedEmoji)) {
+                showError('This emoji is already taken. Please choose another.');
+                await loadTakenEmojis();
+                populateEmojiGrid();
+                return;
+            }
+            
+            // Set loading state
+            setLoadingState('joinBtn', true);
+            errorMsg.style.display = 'none';
+            
+            try {
+                console.log('Starting player join process...');
+                console.log('Game code:', gameState.gameCode);
+                console.log('Player name:', name);
+                console.log('Selected emoji:', selectedEmoji);
+                
+                // Double-check game is still available
+                const game = await supabase.getGame(gameState.gameCode);
+                if (!game || game.status !== 'waiting') {
+                    showError('Game is no longer available or has already started.');
+                    return;
+                }
+                
+                console.log('Game verified, creating player...');
+                
+                // Create player in database
+                const playerData = {
+                    game_code: gameState.gameCode,
+                    name: name,
+                    emoji: selectedEmoji,
+                    alive: true,
+                    position: -1, // Start not positioned
+                    last_activity: new Date().toISOString(),
+                    joined_at: new Date().toISOString()
+                };
+                
+                console.log('Inserting player data:', playerData);
+                const result = await supabase.insert('players', playerData);
+                console.log('Insert result:', result);
+                
+                if (result && result.length > 0 && result[0] && result[0].id) {
+                    console.log('Player created successfully with ID:', result[0].id);
+                    
+                    // CLEAR any existing role data first
+                    try {
+                        localStorage.removeItem('trapdoorTriviaRole');
+                        localStorage.removeItem('trapdoorTriviaIsHost');
+                        sessionStorage.removeItem('trapdoorTriviaRole');  
+                        sessionStorage.removeItem('trapdoorTriviaIsHost');
+                        console.log('Cleared existing role data');
+                    } catch (e) {
+                        console.warn('Error clearing storage:', e);
+                    }
+                    
+                    // Set player data in game state
+                    gameState.setRole('player');
+                    gameState.playerId = result[0].id;
+                    gameState.playerName = name;
+                    gameState.playerEmoji = selectedEmoji;
+                    
+                    // Set explicit player indicators in storage
+                    try {
+                        localStorage.setItem('trapdoorTriviaRole', 'player');
+                        localStorage.setItem('trapdoorTriviaPlayerId', result[0].id.toString());
+                        sessionStorage.setItem('trapdoorTriviaRole', 'player');
+                        console.log('Set player indicators in storage');
+                    } catch (e) {
+                        console.warn('Error setting storage:', e);
+                    }
+                    
+                    // Save state
+                    gameState.saveToStorage();
+                    console.log('Game state saved:', gameState.getDebugInfo());
+                    
+                    playSound('join');
+                    showNotification('Joined game successfully!', 'success', 1500);
+                    
+                    console.log('Navigating to waiting room...');
+                    setTimeout(() => {
+                        window.location.href = 'waiting-room.html';
+                    }, 1000);
+                    
+                } else {
+                    console.error('Invalid result from player creation:', result);
+                    showError('Failed to join game. Please try again.');
+                }
+                
+            } catch (error) {
+                console.error('Error in handleSubmit:', error);
+                console.error('Error stack:', error.stack);
+                
+                // More specific error messages
+                if (error.message.includes('insert')) {
+                    showError('Failed to create player record. Please try again.');
+                } else if (error.message.includes('network') || error.message.includes('fetch')) {
+                    showError('Network error. Please check your connection and try again.');
+                } else {
+                    showError('Failed to join game: ' + error.message);
+                }
+            } finally {
+                setLoadingState('joinBtn', false);
+            }
+        }
+        
+        function handleBack() {
+            playSound('buttonClick');
+            navigateTo('join.html');
+        }
+        
+        function showError(message) {
+            const errorMsg = $('errorMessage');
+            errorMsg.textContent = message;
+            errorMsg.style.display = 'block';
+            
+            // Scroll to show error if needed
+            errorMsg.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+        
+        // Keyboard navigation for emoji grid
+        document.addEventListener('keydown', (e) => {
+            const focused = document.activeElement;
+            if (focused && focused.classList.contains('emoji-option')) {
+                const emojis = Array.from($$('.emoji-option:not(.taken)'));
+                const currentIndex = emojis.indexOf(focused);
+                
+                let newIndex = -1;
+                
+                switch (e.key) {
+                    case 'ArrowRight':
+                        newIndex = (currentIndex + 1) % emojis.length;
+                        break;
+                    case 'ArrowLeft':
+                        newIndex = (currentIndex - 1 + emojis.length) % emojis.length;
+                        break;
+                    case 'ArrowDown':
+                        newIndex = Math.min(emojis.length - 1, currentIndex + 10);
+                        break;
+                    case 'ArrowUp':
+                        newIndex = Math.max(0, currentIndex - 10);
+                        break;
+                }
+                
+                if (newIndex >= 0 && emojis[newIndex]) {
+                    preventDefault(e);
+                    emojis[newIndex].focus();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

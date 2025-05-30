@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Game Over - Trapdoor Trivia</title>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/victory.css">
+    <link rel="stylesheet" href="css/responsive.css">
+</head>
+<body>
+    <div class="stage-lights"></div>
+    
+    <!-- Sound Toggle -->
+    <button class="sound-toggle" id="soundToggle">🔊</button>
+    
+    <div class="game-container">
+        <div class="victory-screen">
+            <h1 class="game-title">GAME OVER</h1>
+            
+            <div class="victory-content" id="victoryContent">
+                <!-- Winner/House Wins content will be inserted here -->
+            </div>
+            
+            <div class="game-stats" id="gameStats">
+                <!-- Game statistics will be shown here -->
+            </div>
+            
+            <div class="button-container mt-large">
+                <button class="btn btn-primary" onclick="newGame()">NEW GAME</button>
+                <button class="btn btn-secondary" onclick="backToHome()">HOME</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/config.js"></script>
+    <script src="js/supabase.js"></script>
+    <script src="js/game-state.js"></script>
+    <script src="js/audio.js"></script>
+    <script src="js/utils.js"></script>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Initialize victory screen
+            await initializeVictoryScreen();
+            
+            // Event listeners
+            $('soundToggle').addEventListener('click', toggleSound);
+            
+            // Cleanup game after delay
+            setTimeout(cleanupGame, 10000); // Clean up after 10 seconds
+        });
+        
+        async function initializeVictoryScreen() {
+            try {
+                // Check if we have a valid game
+                if (!gameState.gameCode) {
+                    showGenericGameOver();
+                    return;
+                }
+                
+                // Get final game state
+                const game = await supabase.getGame(gameState.gameCode);
+                const players = await supabase.select('players', `game_code=eq.${gameState.gameCode}`);
+                const alivePlayers = players.filter(p => p.alive);
+                
+                // Show appropriate victory screen
+                if (alivePlayers.length === 0) {
+                    showHouseWins();
+                } else if (alivePlayers.length === 1) {
+                    showPlayerWins(alivePlayers[0]);
+                } else {
+                    // Multiple players alive (game ended early)
+                    showGameEndedEarly(alivePlayers);
+                }
+                
+                // Show game statistics
+                showGameStats(game, players);
+                
+            } catch (error) {
+                handleError(error, 'initializing victory screen');
+                showGenericGameOver();
+            }
+        }
+        
+        function showHouseWins() {
+            playSound('houseWins');
+            
+            const content = `
+                <div class="house-wins-container">
+                    <div class="gravestone">⚰️</div>
+                    <h2 class="house-wins-title">THE HOUSE WINS!</h2>
+                    <p class="house-wins-subtitle">All players have fallen through the trapdoors...</p>
+                    <div class="defeat-message">
+                        <p>💀 Every contestant met their doom 💀</p>
+                        <p>The trivia proved too treacherous!</p>
+                    </div>
+                </div>
+            `;
+            
+            $('victoryContent').innerHTML = content;
+            document.body.classList.add('house-wins');
+        }
+        
+        function showPlayerWins(winner) {
+            playSound('victory');
+            
+            const isMe = winner.id === gameState.playerId;
+            const title = isMe ? 'YOU WIN!' : `${winner.name.toUpperCase()} WINS!`;
+            
+            const content = `
+                <div class="player-wins-container">
+                    <div class="confetti"></div>
+                    <div class="podium">
+                        <div class="first-place">
+                            <div class="winner-emoji">${winner.emoji}</div>
+                            <div class="winner-crown">👑</div>
+                            <div class="place-number">1</div>
+                        </div>
+                    </div>
+                    <h2 class="winner-title ${isMe ? 'personal-win' : ''}">${title}</h2>
+                    <p class="winner-subtitle">
+                        ${isMe ? 'Congratulations! You survived all the trapdoors!' : 
+                          `${winner.name} was the last player standing!`}
+                    </p>
+                    <div class="victory-message">
+                        <p>🎉 Master of Trivia 🎉</p>
+                        <p>Avoided every wrong answer!</p>
+                    </div>
+                </div>
+            `;
+            
+            $('victoryContent').innerHTML = content;
+            document.body.classList.add('player-wins');
+            
+            // Trigger confetti animation
+            setTimeout(createConfetti, 500);
+        }
+        
+        function showGameEndedEarly(alivePlayers) {
+            const content = `
+                <div class="game-ended-container">
+                    <h2 class="ended-title">GAME ENDED</h2>
+                    <p class="ended-subtitle">The game was ended by the host</p>
+                    <div class="survivors-list">
+                        <h3>Survivors:</h3>
+                        ${alivePlayers.map(player => `
+                            <div class="survivor-item">
+                                <span class="survivor-emoji">${player.emoji}</span>
+                                <span class="survivor-name">${player.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+            
+            $('victoryContent').innerHTML = content;
+        }
+        
+        function showGenericGameOver() {
+            const content = `
+                <div class="generic-gameover">
+                    <h2 class="generic-title">GAME OVER</h2>
+                    <p class="generic-subtitle">Thanks for playing Trapdoor Trivia!</p>
+                    <div class="generic-emoji">🎭</div>
+                </div>
+            `;
+            
+            $('victoryContent').innerHTML = content;
+        }
+        
+        function showGameStats(game, players) {
+            const totalQuestions = game ? game.current_question : 0;
+            const totalPlayers = players.length;
+            const eliminatedPlayers = players.filter(p => !p.alive).length;
+            const suddenDeathReached = game ? game.sudden_death : false;
+            
+            const stats = `
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">${totalQuestions}</div>
+                        <div class="stat-label">Questions Asked</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${totalPlayers}</div>
+                        <div class="stat-label">Total Players</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">${eliminatedPlayers}</div>
+                        <div class="stat-label">Players Eliminated</div>
+                    </div>
+                    ${suddenDeathReached ? `
+                        <div class="stat-item special">
+                            <div class="stat-value">💀</div>
+                            <div class="stat-label">Sudden Death Reached</div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            
+            $('gameStats').innerHTML = stats;
+        }
+        
+        function createConfetti() {
+            const colors = ['#97c1a9', '#55cbcd', '#ffb8b1', '#ffffff'];
+            const confettiContainer = document.querySelector('.confetti');
+            
+            for (let i = 0; i < 100; i++) {
+                const confettiPiece = document.createElement('div');
+                confettiPiece.className = 'confetti-piece';
+                confettiPiece.style.cssText = `
+                    position: absolute;
+                    width: ${Math.random() * 10 + 5}px;
+                    height: ${Math.random() * 10 + 5}px;
+                    background: ${colors[Math.floor(Math.random() * colors.length)]};
+                    left: ${Math.random() * 100}%;
+                    top: -10px;
+                    animation: confettiFall ${Math.random() * 2 + 3}s linear forwards;
+                    animation-delay: ${Math.random() * 2}s;
+                `;
+                confettiContainer.appendChild(confettiPiece);
+            }
+            
+            // Clean up confetti after animation
+            setTimeout(() => {
+                if (confettiContainer) {
+                    confettiContainer.innerHTML = '';
+                }
+            }, 8000);
+        }
+        
+        async function cleanupGame() {
+            // Clean up the game from database if host
+            if (gameState.role === 'host' && gameState.gameCode) {
+                try {
+                    await supabase.delete('players', `game_code=eq.${gameState.gameCode}`);
+                    await supabase.delete('games', `code=eq.${gameState.gameCode}`);
+                } catch (error) {
+                    console.warn('Cleanup error:', error);
+                }
+            }
+        }
+        
+        function newGame() {
+            playSound('buttonClick');
+            gameState.reset();
+            navigateTo('index.html');
+        }
+        
+        function backToHome() {
+            playSound('buttonClick');
+            gameState.reset();
+            navigateTo('index.html');
+        }
+    </script>
+</body>
+</html>
