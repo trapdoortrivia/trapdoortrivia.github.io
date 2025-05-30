@@ -38,7 +38,6 @@ const GAME_CONFIG = {
         easy: 5,
         medium: 10,
         hard: 15,
-        suddenDeath: 5
     },
     
     // Minimum players to start game
