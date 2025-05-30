@@ -77,11 +77,6 @@ input:-webkit-autofill:active {
     z-index: 1;
 }
 
-.stage-lights.sudden-death {
-    animation: redFlash 1s infinite;
-    background: radial-gradient(ellipse at center top, rgba(255,184,177,0.3) 0%, transparent 50%);
-}
-
 @keyframes redFlash {
     0%, 100% { opacity: 0.3; }
     50% { opacity: 0.8; }
