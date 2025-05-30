@@ -175,7 +175,6 @@
             const totalQuestions = game ? game.current_question : 0;
             const totalPlayers = players.length;
             const eliminatedPlayers = players.filter(p => !p.alive).length;
-            const suddenDeathReached = game ? game.sudden_death : false;
             
             const stats = `
                 <div class="stats-grid">
@@ -191,12 +190,6 @@
                         <div class="stat-value">${eliminatedPlayers}</div>
                         <div class="stat-label">Players Eliminated</div>
                     </div>
-                    ${suddenDeathReached ? `
-                        <div class="stat-item special">
-                            <div class="stat-value">💀</div>
-                            <div class="stat-label">Sudden Death Reached</div>
-                        </div>
-                    ` : ''}
                 </div>
             `;
             
