@@ -138,9 +138,6 @@
                     <span class="info-label">Question:</span>
                     <span class="info-value" id="playerQuestionNumber">0</span>
                 </div>
-                <div class="info-item sudden-death-indicator hidden" id="playerSuddenDeathIndicator">
-                    💀 SUDDEN DEATH 💀
-                </div>
             </div>
 
             <!-- Player Status -->
@@ -397,7 +394,6 @@
             try {
                 gameState.currentQuestion++;
                 
-                const difficulty = gameState.suddenDeath ? 'hard' : gameState.difficulty;
                 const questionBank = gameState.questions[difficulty] || [];
                 
                 if (questionBank.length === 0) {
@@ -461,8 +457,7 @@
             $('hostQuestionNumber').textContent = gameState.currentQuestion;
         }
         
-        function startHostTimer(correctAnswer) {
-            const duration = gameState.suddenDeath ? 5 : 
+        function startHostTimer(correctAnswer) { 
                            gameState.difficulty === 'easy' ? 5 :
                            gameState.difficulty === 'medium' ? 10 : 15;
             
@@ -570,11 +565,6 @@
                 
                 setTimeout(() => navigateTo('victory.html'), 2000);
                 
-            } else if (playersAlive === 2 && !gameState.suddenDeath) {
-                // Activate sudden death!
-                await activateSuddenDeath();
-                resetHostControls();
-                
             } else {
                 // Continue game
                 resetHostControls();
@@ -587,45 +577,6 @@
             $('hostTimer').textContent = '-';
             $('hostTimerFill').style.width = '100%';
             $('hostTimerFill').classList.remove('danger');
-        }
-        
-        async function activateSuddenDeath() {
-            console.log('Activating sudden death!');
-            
-            gameState.setSuddenDeath(true);
-            
-            // Update database
-            await supabase.update('games', gameState.gameId, { 
-                sudden_death: true,
-                last_activity: new Date().toISOString()
-            });
-            
-            // Visual effects
-            document.body.classList.add('sudden-death');
-            $('stageLights').classList.add('sudden-death');
-            show('hostSuddenDeathIndicator');
-            
-            playSound('suddenDeath');
-            showSuddenDeathMessage();
-        }
-        
-        function showSuddenDeathMessage() {
-            const message = document.createElement('div');
-            message.style.cssText = `
-                position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-                background: rgba(0,0,0,0.9); display: flex; flex-direction: column;
-                align-items: center; justify-content: center; z-index: 10000;
-                animation: fadeIn 0.5s ease-out; text-align: center;
-            `;
-            message.innerHTML = `
-                <div style="font-size: 8rem; animation: bounce 1s infinite;">💀</div>
-                <h1 style="font-size: 4rem; color: #ffb8b1; margin: 2rem 0;">SUDDEN DEATH!</h1>
-                <p style="font-size: 1.5rem; color: white;">Only 2 players remain...</p>
-                <p style="font-size: 1.25rem; color: white;">Hard questions only • 5 seconds each</p>
-            `;
-            
-            document.body.appendChild(message);
-            setTimeout(() => message.remove(), 4000);
         }
         
         // FIXED initializePlayer function for game-stage.html
@@ -795,21 +746,6 @@
                         return;
                     }
                     
-                    // Update sudden death state
-                    if (game.sudden_death && !gameState.suddenDeath) {
-                        gameState.setSuddenDeath(true);
-                        document.body.classList.add('sudden-death');
-                        $('stageLights').classList.add('sudden-death');
-                        
-                        if (gameState.role === 'host') {
-                            show('hostSuddenDeathIndicator');
-                        } else {
-                            show('playerSuddenDeathIndicator');
-                        }
-                        
-                        showSuddenDeathMessage();
-                    }
-                    
                     // For players: check for new questions
                     if (gameState.role === 'player' && game.question_index !== null && game.question_index !== gameState.currentQuestionIndex) {
                         await handleNewPlayerQuestion(game);
@@ -839,7 +775,6 @@
                 gameState.questions = await supabase.getAllQuestionsGrouped();
             }
             
-            const difficulty = game.sudden_death ? 'hard' : game.difficulty;
             const questionBank = gameState.questions[difficulty];
             
             if (questionBank && questionBank[game.question_index]) {
@@ -884,7 +819,6 @@
         }
         
         function startPlayerTimer() {
-            const duration = gameState.suddenDeath ? 5 : 
                            gameState.difficulty === 'easy' ? 5 :
                            gameState.difficulty === 'medium' ? 10 : 15;
             
@@ -987,7 +921,6 @@
         
         // HOST CONTROLS
         function setDifficulty(difficulty) {
-            if (gameState.suddenDeath) return;
             
             gameState.setDifficulty(difficulty);
             playSound('buttonClick');
