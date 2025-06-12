@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ValoraOS Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: white;
+        }
+
+        .app-container {
+            max-width: 400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            background: linear-gradient(45deg, #00d4ff, #ffffff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .status.disconnected {
+            background: rgba(255, 107, 107, 0.2);
+            border: 2px solid #ff6b6b;
+        }
+
+        .status.connected {
+            background: rgba(81, 207, 102, 0.2);
+            border: 2px solid #51cf66;
+        }
+
+        .status.connecting {
+            background: rgba(255, 212, 59, 0.2);
+            border: 2px solid #ffd43b;
+        }
+
+        .controls-section {
+            margin-bottom: 30px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            color: #e0e0e0;
+        }
+
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .nav-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr 1fr;
+            gap: 10px;
+            max-width: 200px;
+            margin: 0 auto 20px;
+        }
+
+        .control-btn {
+            background: rgba(255, 255, 255, 0.15);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .nav-up { grid-column: 2; grid-row: 1; }
+        .nav-left { grid-column: 1; grid-row: 2; }
+        .nav-select { 
+            grid-column: 2; 
+            grid-row: 2; 
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            font-weight: 700;
+        }
+        .nav-right { grid-column: 3; grid-row: 2; }
+        .nav-down { grid-column: 2; grid-row: 3; }
+        .nav-back { 
+            grid-column: 1; 
+            grid-row: 3; 
+            grid-column-end: 4;
+            background: rgba(255, 107, 107, 0.3);
+        }
+
+        .theme-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .theme-btn {
+            height: 60px;
+            border-radius: 12px;
+            border: 3px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .theme-btn.active {
+            border-color: white;
+            transform: scale(1.05);
+        }
+
+        .theme-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .cyber-blue { background: linear-gradient(45deg, #00bcd4, #2196f3); }
+        .neon-purple { background: linear-gradient(45deg, #e91e63, #9c27b0); }
+        .fire { background: linear-gradient(45deg, #ff5722, #ff9800); }
+        .matrix { background: linear-gradient(45deg, #4caf50, #8bc34a); }
+        .minimal { background: linear-gradient(45deg, #607d8b, #9e9e9e); }
+        .luxury { background: linear-gradient(45deg, #ffc107, #ffeb3b); }
+
+        .quick-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .action-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .notification-sender {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #e0e0e0;
+        }
+
+        .input-group input, .input-group select, .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1rem;
+        }
+
+        .input-group input::placeholder, .input-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .input-group textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .system-info {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 15px;
+            padding: 20px;
+            margin-top: 20px;
+        }
+
+        .info-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #b0b0b0;
+        }
+
+        .info-value {
+            color: #00d4ff;
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            opacity: 0.7;
+            font-size: 0.9rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .pulsing {
+            animation: pulse 2s infinite;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="header">
+            <div class="logo">ValoraOS</div>
+            <div class="subtitle">Remote Controller</div>
+        </div>
+
+        <div id="connectionStatus" class="status disconnected">
+            <span id="statusText">Disconnected</span>
+        </div>
+
+        <div class="controls-section">
+            <div class="section-title">🎮 Navigation</div>
+            <div class="nav-controls">
+                <button class="control-btn nav-up" onclick="sendCommand('up')">↑</button>
+                <button class="control-btn nav-left" onclick="sendCommand('left')">←</button>
+                <button class="control-btn nav-select" onclick="sendCommand('select')">SELECT</button>
+                <button class="control-btn nav-right" onclick="sendCommand('right')">→</button>
+                <button class="control-btn nav-down" onclick="sendCommand('down')">↓</button>
+                <button class="control-btn nav-back" onclick="sendCommand('back')">BACK</button>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="section-title">🎨 Themes</div>
+            <div class="theme-selector">
+                <div class="theme-btn cyber-blue active" onclick="setTheme(0)" title="Cyber Blue"></div>
+                <div class="theme-btn neon-purple" onclick="setTheme(1)" title="Neon Purple"></div>
+                <div class="theme-btn fire" onclick="setTheme(2)" title="Fire"></div>
+                <div class="theme-btn matrix" onclick="setTheme(3)" title="Matrix"></div>
+                <div class="theme-btn minimal" onclick="setTheme(4)" title="Minimal"></div>
+                <div class="theme-btn luxury" onclick="setTheme(5)" title="Luxury"></div>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="section-title">⚡ Quick Actions</div>
+            <div class="quick-actions">
+                <button class="action-btn" onclick="goToMenu()">📱 Menu</button>
+                <button class="action-btn" onclick="goToHome()">🏠 Home</button>
+                <button class="action-btn" onclick="goToSettings()">⚙️ Settings</button>
+                <button class="action-btn" onclick="goToApps()">📊 Apps</button>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="section-title">📨 Send Notification</div>
+            <div class="notification-sender">
+                <div class="input-group">
+                    <label>Title</label>
+                    <input type="text" id="notifTitle" placeholder="Notification title">
+                </div>
+                <div class="input-group">
+                    <label>Message</label>
+                    <textarea id="notifMessage" placeholder="Your message here..."></textarea>
+                </div>
+                <div class="input-group">
+                    <label>Type</label>
+                    <select id="notifType">
+                        <option value="info">Info</option>
+                        <option value="message">Message</option>
+                        <option value="reminder">Reminder</option>
+                        <option value="alert">Alert</option>
+                    </select>
+                </div>
+                <button class="action-btn" onclick="sendNotification()" style="width: 100%; margin-top: 10px;">
+                    Send Notification
+                </button>
+            </div>
+        </div>
+
+        <div class="controls-section">
+            <div class="section-title">🕐 Time Control</div>
+            <div class="quick-actions">
+                <button class="action-btn" onclick="syncTime()">🔄 Sync Time</button>
+                <button class="action-btn" onclick="updateWeather()">🌤️ Weather</button>
+            </div>
+        </div>
+
+        <div class="system-info">
+            <div class="section-title">📊 System Status</div>
+            <div class="info-item">
+                <span class="info-label">Watch State:</span>
+                <span class="info-value" id="watchState">Unknown</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Theme:</span>
+                <span class="info-value" id="currentTheme">Cyber Blue</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Watch Face:</span>
+                <span class="info-value" id="currentWatchface">Analog</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Battery:</span>
+                <span class="info-value" id="batteryLevel">85%</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Uptime:</span>
+                <span class="info-value" id="uptime">0 min</span>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>ValoraOS Controller v1.0.0</p>
+            <p>Connect via Bluetooth to control your watch</p>
+        </div>
+    </div>
+
+    <script>
+        class ValoraController {
+            constructor() {
+                this.isConnected = false;
+                this.device = null;
+                this.characteristic = null;
+                this.currentTheme = 0;
+                this.systemStatus = {};
+                
+                this.init();
+            }
+
+            async init() {
+                // Check if Web Bluetooth is supported
+                if (!navigator.bluetooth) {
+                    this.showStatus('Web Bluetooth not supported', 'disconnected');
+                    return;
+                }
+
+                this.showStatus('Ready to connect', 'disconnected');
+            }
+
+            async connect() {
+                try {
+                    this.showStatus('Scanning for ValoraOS...', 'connecting');
+                    
+                    // Request Bluetooth device
+                    this.device = await navigator.bluetooth.requestDevice({
+                        filters: [{ name: 'ValoraOS' }],
+                        optionalServices: ['12345678-1234-5678-9012-123456789abc']
+                    });
+
+                    this.showStatus('Connecting...', 'connecting');
+
+                    // Connect to GATT server
+                    const server = await this.device.gatt.connect();
+                    
+                    // Get service and characteristic
+                    const service = await server.getPrimaryService('12345678-1234-5678-9012-123456789abc');
+                    this.characteristic = await service.getCharacteristic('87654321-4321-8765-2109-cba987654321');
+
+                    // Set up notifications
+                    await this.characteristic.startNotifications();
+                    this.characteristic.addEventListener('characteristicvaluechanged', 
+                        this.handleNotification.bind(this));
+
+                    this.isConnected = true;
+                    this.showStatus('Connected to ValoraOS', 'connected');
+                    
+                    // Start heartbeat
+                    this.startHeartbeat();
+                    
+                    // Request initial status
+                    this.sendCommand('heartbeat');
+
+                } catch (error) {
+                    console.error('Connection failed:', error);
+                    this.showStatus('Connection failed: ' + error.message, 'disconnected');
+                }
+            }
+
+            disconnect() {
+                if (this.device && this.device.gatt.connected) {
+                    this.device.gatt.disconnect();
+                }
+                this.isConnected = false;
+                this.showStatus('Disconnected', 'disconnected');
+            }
+
+            startHeartbeat() {
+                setInterval(() => {
+                    if (this.isConnected) {
+                        this.sendRawCommand({action: 'heartbeat'});
+                    }
+                }, 5000);
+            }
+
+            handleNotification(event) {
+                const value = new TextDecoder().decode(event.target.value);
+                try {
+                    const data = JSON.parse(value);
+                    this.handleResponse(data);
+                } catch (error) {
+                    console.log('Received:', value);
+                }
+            }
+
+            handleResponse(data) {
+                switch (data.type) {
+                    case 'system_status':
+                        this.updateSystemStatus(data);
+                        break;
+                    case 'theme_changed':
+                        this.updateThemeUI(data.data);
+                        break;
+                    case 'watchface_changed':
+                        document.getElementById('currentWatchface').textContent = data.data;
+                        break;
+                    default:
+                        console.log('Received response:', data);
+                }
+            }
+
+            updateSystemStatus(status) {
+                this.systemStatus = status;
+                
+                document.getElementById('watchState').textContent = status.state || 'Unknown';
+                document.getElementById('currentTheme').textContent = this.getThemeName(status.theme);
+                document.getElementById('currentWatchface').textContent = this.getWatchfaceName(status.watchface);
+                document.getElementById('batteryLevel').textContent = (status.battery || 0) + '%';
+                document.getElementById('uptime').textContent = Math.floor((status.uptime || 0) / 60) + ' min';
+                
+                // Update theme selector
+                this.currentTheme = status.theme || 0;
+                this.updateThemeSelector();
+            }
+
+            showStatus(message, type) {
+                const statusEl = document.getElementById('connectionStatus');
+                const textEl = document.getElementById('statusText');
+                
+                textEl.textContent = message;
+                statusEl.className = `status ${type}`;
+                
+                if (type === 'connecting') {
+                    statusEl.classList.add('pulsing');
+                } else {
+                    statusEl.classList.remove('pulsing');
+                }
+            }
+
+            async sendRawCommand(command) {
+                if (!this.isConnected || !this.characteristic) {
+                    await this.connect();
+                    if (!this.isConnected) return;
+                }
+
+                try {
+                    const commandStr = JSON.stringify(command);
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(commandStr);
+                    await this.characteristic.writeValue(data);
+                } catch (error) {
+                    console.error('Send command failed:', error);
+                    this.showStatus('Communication error', 'disconnected');
+                    this.isConnected = false;
+                }
+            }
+
+            async sendCommand(action, params = {}) {
+                const command = { action, ...params };
+                await this.sendRawCommand(command);
+            }
+
+            updateThemeSelector() {
+                const themes = document.querySelectorAll('.theme-btn');
+                themes.forEach((btn, index) => {
+                    btn.classList.toggle('active', index === this.currentTheme);
+                });
+            }
+
+            getThemeName(index) {
+                const names = ['Cyber Blue', 'Neon Purple', 'Fire', 'Matrix', 'Minimal', 'Luxury'];
+                return names[index] || 'Unknown';
+            }
+
+            getWatchfaceName(index) {
+                const names = ['Analog', 'Digital', 'Minimal'];
+                return names[index] || 'Unknown';
+            }
+        }
+
+        // Initialize controller
+        const controller = new ValoraController();
+
+        // Control functions
+        async function sendCommand(direction) {
+            await controller.sendCommand('navigate', { direction });
+        }
+
+        async function handleSelect() {
+            await controller.sendCommand('select');
+        }
+
+        async function handleBack() {
+            await controller.sendCommand('back');
+        }
+
+        async function setTheme(themeIndex) {
+            controller.currentTheme = themeIndex;
+            controller.updateThemeSelector();
+            await controller.sendCommand('set_theme', { theme: themeIndex });
+        }
+
+        async function setWatchface(faceIndex) {
+            await controller.sendCommand('set_watchface', { face: faceIndex });
+        }
+
+        async function goToMenu() {
+            await controller.sendRawCommand({ action: 'navigate', direction: 'menu' });
+        }
+
+        async function goToHome() {
+            await controller.sendRawCommand({ action: 'navigate', direction: 'home' });
+        }
+
+        async function goToSettings() {
+            await controller.sendRawCommand({ action: 'navigate', direction: 'settings' });
+        }
+
+        async function goToApps() {
+            await controller.sendRawCommand({ action: 'navigate', direction: 'apps' });
+        }
+
+        async function sendNotification() {
+            const title = document.getElementById('notifTitle').value;
+            const message = document.getElementById('notifMessage').value;
+            const type = document.getElementById('notifType').value;
+
+            if (!title || !message) {
+                alert('Please enter both title and message');
+                return;
+            }
+
+            await controller.sendCommand('send_notification', {
+                title: title,
+                message: message,
+                type: type
+            });
+
+            // Clear inputs
+            document.getElementById('notifTitle').value = '';
+            document.getElementById('notifMessage').value = '';
+        }
+
+        async function syncTime() {
+            const now = new Date();
+            await controller.sendCommand('set_time', {
+                hour: now.getHours(),
+                minute: now.getMinutes(),
+                second: now.getSeconds()
+            });
+        }
+
+        async function updateWeather() {
+            // Simulate weather data - in real app, you'd fetch from weather API
+            const weatherConditions = ['Sunny', 'Cloudy', 'Rainy', 'Stormy', 'Snow'];
+            const condition = weatherConditions[Math.floor(Math.random() * weatherConditions.length)];
+            const temperature = Math.floor(Math.random() * 40) + 50; // 50-90°F
+
+            await controller.sendCommand('update_weather', {
+                condition: condition,
+                temperature: temperature,
+                location: 'Columbia, VA'
+            });
+        }
+
+        // Stopwatch controls
+        async function controlStopwatch(command) {
+            await controller.sendCommand('control_stopwatch', { command });
+        }
+
+        // Timer controls
+        async function controlTimer(command, minutes = 5, seconds = 0) {
+            await controller.sendCommand('control_timer', { 
+                command, 
+                minutes, 
+                seconds 
+            });
+        }
+
+        // Auto-connect when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Add connection button to status
+            const statusEl = document.getElementById('connectionStatus');
+            statusEl.style.cursor = 'pointer';
+            statusEl.addEventListener('click', async () => {
+                if (!controller.isConnected) {
+                    await controller.connect();
+                }
+            });
+
+            // Add keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (!controller.isConnected) return;
+
+                switch (e.key) {
+                    case 'ArrowUp':
+                        e.preventDefault();
+                        sendCommand('up');
+                        break;
+                    case 'ArrowDown':
+                        e.preventDefault();
+                        sendCommand('down');
+                        break;
+                    case 'ArrowLeft':
+                        e.preventDefault();
+                        sendCommand('left');
+                        break;
+                    case 'ArrowRight':
+                        e.preventDefault();
+                        sendCommand('right');
+                        break;
+                    case 'Enter':
+                    case ' ':
+                        e.preventDefault();
+                        handleSelect();
+                        break;
+                    case 'Escape':
+                        e.preventDefault();
+                        handleBack();
+                        break;
+                    case 'h':
+                        e.preventDefault();
+                        goToHome();
+                        break;
+                    case 'm':
+                        e.preventDefault();
+                        goToMenu();
+                        break;
+                    case 's':
+                        e.preventDefault();
+                        goToSettings();
+                        break;
+                    case 'a':
+                        e.preventDefault();
+                        goToApps();
+                        break;
+                    case '1':
+                    case '2':
+                    case '3':
+                    case '4':
+                    case '5':
+                    case '6':
+                        e.preventDefault();
+                        setTheme(parseInt(e.key) - 1);
+                        break;
+                }
+            });
+
+            // Add demo notifications button
+            const demoButton = document.createElement('button');
+            demoButton.className = 'action-btn';
+            demoButton.textContent = '🧪 Demo Notification';
+            demoButton.style.width = '100%';
+            demoButton.style.marginTop = '10px';
+            demoButton.onclick = () => {
+                document.getElementById('notifTitle').value = 'Demo Alert';
+                document.getElementById('notifMessage').value = 'This is a test notification from your phone!';
+                document.getElementById('notifType').value = 'info';
+                sendNotification();
+            };
+            
+            document.querySelector('.notification-sender').appendChild(demoButton);
+
+            // Add app control buttons
+            const appControlsDiv = document.createElement('div');
+            appControlsDiv.className = 'controls-section';
+            appControlsDiv.innerHTML = `
+                <div class="section-title">⏱️ App Controls</div>
+                <div class="quick-actions">
+                    <button class="action-btn" onclick="controlStopwatch('start')">▶️ Start SW</button>
+                    <button class="action-btn" onclick="controlStopwatch('stop')">⏸️ Stop SW</button>
+                    <button class="action-btn" onclick="controlStopwatch('reset')">🔄 Reset SW</button>
+                    <button class="action-btn" onclick="controlTimer('start', 5, 0)">⏰ 5min Timer</button>
+                </div>
+            `;
+            
+            document.querySelector('.system-info').parentNode.insertBefore(
+                appControlsDiv, 
+                document.querySelector('.system-info')
+            );
+
+            // Update status periodically
+            setInterval(() => {
+                if (controller.isConnected) {
+                    controller.sendCommand('heartbeat');
+                }
+            }, 10000);
+
+            console.log('ValoraOS Controller initialized');
+            console.log('Keyboard shortcuts:');
+            console.log('Arrow keys: Navigation');
+            console.log('Enter/Space: Select');
+            console.log('Escape: Back');
+            console.log('H: Home, M: Menu, S: Settings, A: Apps');
+            console.log('1-6: Change themes');
+        });
+
+        // Service Worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/sw.js').catch(console.error);
+        }
+
+        // Add touch gestures for mobile
+        let startX, startY;
+
+        document.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+        });
+
+        document.addEventListener('touchend', (e) => {
+            if (!controller.isConnected) return;
+            
+            const endX = e.changedTouches[0].clientX;
+            const endY = e.changedTouches[0].clientY;
+            
+            const deltaX = endX - startX;
+            const deltaY = endY - startY;
+            
+            const minSwipeDistance = 50;
+            
+            if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > minSwipeDistance) {
+                // Horizontal swipe
+                if (deltaX > 0) {
+                    sendCommand('right');
+                } else {
+                    sendCommand('left');
+                }
+            } else if (Math.abs(deltaY) > minSwipeDistance) {
+                // Vertical swipe
+                if (deltaY > 0) {
+                    sendCommand('down');
+                } else {
+                    sendCommand('up');
+                }
+            }
+        });
+    </script>
+</body>
+</html>
