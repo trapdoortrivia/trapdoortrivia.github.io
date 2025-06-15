@@ -298,6 +298,8 @@
                 <button class="control-btn nav-select" onclick="sendCommand('select')">SELECT</button>
                 <button class="control-btn nav-right" onclick="sendCommand('right')">→</button>
                 <button class="control-btn nav-down" onclick="sendCommand('down')">↓</button>
+                <br>
+                <br>
                 <button class="control-btn nav-back" onclick="sendCommand('back')">BACK</button>
             </div>
         </div>
@@ -351,10 +353,35 @@
         </div>
 
         <div class="controls-section">
-            <div class="section-title">🕐 Time Control</div>
-            <div class="quick-actions">
-                <button class="action-btn" onclick="syncTime()">🔄 Sync Time</button>
-                <button class="action-btn" onclick="updateWeather()">🌤️ Weather</button>
+            <div class="section-title">🧭 Navigation</div>
+            <div class="notification-sender">
+                <div class="input-group">
+                    <label>Turn Instruction</label>
+                    <input type="text" id="navInstruction" placeholder="Turn left in 200 meters">
+                </div>
+                <div class="input-group">
+                    <label>Street Name</label>
+                    <input type="text" id="navStreet" placeholder="Main Street">
+                </div>
+                <div class="input-group">
+                    <label>Distance</label>
+                    <input type="text" id="navDistance" placeholder="200m">
+                </div>
+                <div class="input-group">
+                    <label>Direction</label>
+                    <select id="navDirection">
+                        <option value="left">Turn Left</option>
+                        <option value="right">Turn Right</option>
+                        <option value="straight">Go Straight</option>
+                        <option value="u-turn">U-Turn</option>
+                    </select>
+                </div>
+                <button class="action-btn" onclick="sendNavigation()" style="width: 100%; margin-top: 10px;">
+                    Send Navigation
+                </button>
+                <button class="action-btn" onclick="clearNavigation()" style="width: 100%; margin-top: 5px; background: rgba(255, 107, 107, 0.3);">
+                    Clear Navigation
+                </button>
             </div>
         </div>
 
